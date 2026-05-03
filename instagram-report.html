@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reels Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080808;
+  --surface: #111;
+  --surface2: #181818;
+  --border: #222;
+  --border2: #2a2a2a;
+  --text: #e8e6e0;
+  --muted: #666;
+  --muted2: #444;
+  --accent: #e8ff47;
+  --accent2: #ff6b35;
+  --green: #4ade80;
+  --red: #ff4d4d;
+  --blue: #60a5fa;
+  --font: 'Syne', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* SETUP SCREEN */
+#setup-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.setup-box {
+  width: 100%;
+  max-width: 480px;
+}
+
+.logo {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.setup-title {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.setup-title span { color: var(--accent); }
+
+.setup-sub {
+  font-size: 14px;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-bottom: 40px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.field-label {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+input[type="text"], input[type="email"], input[type="password"] {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus { border-color: var(--accent); }
+input::placeholder { color: var(--muted2); }
+
+.btn-primary {
+  width: 100%;
+  background: var(--accent);
+  color: #080808;
+  border: none;
+  border-radius: 6px;
+  padding: 14px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  margin-top: 8px;
+}
+
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--mono);
+  text-align: center;
+  margin-top: 16px;
+  line-height: 1.5;
+}
+
+/* UPLOAD SCREEN */
+#upload-screen {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.upload-box {
+  width: 100%;
+  max-width: 520px;
+}
+
+.upload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.upload-title {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.week-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.drop-zone {
+  border: 1px dashed var(--border2);
+  border-radius: 10px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(232, 255, 71, 0.03);
+}
+
+.drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.drop-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.drop-text {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.drop-sub {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+.file-ready {
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--green);
+  margin-bottom: 16px;
+  display: none;
+}
+
+.btn-generate {
+  width: 100%;
+  background: var(--accent);
+  color: #080808;
+  border: none;
+  border-radius: 6px;
+  padding: 16px;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+
+.btn-generate:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-generate:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* LOADING */
+#loading-screen {
+  display: none;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.loading-ring {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 24px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.loading-sub {
+  font-size: 13px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+/* REPORT SCREEN */
+#report-screen {
+  display: none;
+  padding: 40px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.report-title {
+  font-size: 13px;
+  font-family: var(--mono);
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.report-week {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.btn-new {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-new:hover { border-color: var(--accent); }
+
+/* STATS ROW */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 600px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.stat-sub {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* SECTION */
+.section {
+  margin-bottom: 32px;
+}
+
+.section-head {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* RANKING TABLE */
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ranking-table th {
+  text-align: left;
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ranking-table th:not(:first-child) { text-align: right; }
+
+.ranking-table td {
+  padding: 12px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.ranking-table td:not(:first-child) {
+  font-family: var(--mono);
+  text-align: right;
+  color: var(--muted);
+}
+
+.ranking-table tr:last-child td { border-bottom: none; }
+
+.rank-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted2);
+  width: 24px;
+  display: inline-block;
+}
+
+.rank-1 .rank-num { color: var(--accent); }
+.rank-2 .rank-num { color: var(--text); }
+.rank-3 .rank-num { color: var(--muted); }
+
+.reel-caption {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reel-date {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--muted);
+}
+
+.metric-highlight {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* AI ANALYSIS */
+.analysis-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 24px;
+}
+
+.analysis-content {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.analysis-content h3 {
+  font-size: 13px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin: 20px 0 8px;
+}
+
+.analysis-content h3:first-child { margin-top: 0; }
+
+.analysis-content ul {
+  padding-left: 0;
+  list-style: none;
+}
+
+.analysis-content li {
+  padding: 6px 0;
+  padding-left: 16px;
+  position: relative;
+  font-size: 14px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.analysis-content li:last-child { border-bottom: none; }
+
+.analysis-content li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--muted2);
+}
+
+.do-more { color: var(--green) !important; }
+.do-less { color: var(--red) !important; }
+
+/* EMAIL STATUS */
+.email-status {
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--green);
+  margin-top: 24px;
+  display: none;
+}
+
+.error-msg {
+  background: rgba(255, 77, 77, 0.08);
+  border: 1px solid rgba(255, 77, 77, 0.2);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--red);
+  margin-top: 12px;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <div class="logo">Reels Report System</div>
+    <h1 class="setup-title">Setup <span>enkrat.</span><br>Potem samo upload.</h1>
+    <p class="setup-sub">Vnesi API keye — shranjeni so samo lokalno v brskalniku.</p>
+
+    <div class="field-group">
+      <div>
+        <div class="field-label">Anthropic API Key</div>
+        <input type="password" id="anthropic-key" placeholder="sk-ant-..." autocomplete="off">
+      </div>
+      <div>
+        <div class="field-label">Resend API Key</div>
+        <input type="password" id="resend-key" placeholder="re_..." autocomplete="off">
+      </div>
+      <div>
+        <div class="field-label">Tvoj email (za report)</div>
+        <input type="email" id="user-email" placeholder="urh.meselj9@gmail.com" value="urh.meselj9@gmail.com">
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="saveSetup()">Shrani in začni →</button>
+    <p class="hint">Keyi so shranjeni samo v tvojem brskalniku (localStorage).<br>Nihče drug jih ne vidi.</p>
+  </div>
+</div>
+
+<!-- UPLOAD SCREEN -->
+<div id="upload-screen">
+  <div class="upload-box">
+    <div class="upload-header">
+      <div>
+        <div class="logo">Reels Report</div>
+        <h2 class="upload-title">Upload<br>Metricool CSV</h2>
+      </div>
+      <div>
+        <div class="week-badge" id="week-display"></div>
+        <button class="btn-new" style="display:block;margin-top:8px;" onclick="showSetup()">⚙ Nastavitve</button>
+      </div>
+    </div>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="csv-file" accept=".csv" onchange="handleFile(this.files[0])">
+      <span class="drop-icon">📊</span>
+      <div class="drop-text">Povleci CSV sem ali klikni</div>
+      <div class="drop-sub">Export iz Metricool → Analytics → Reels → Export CSV</div>
+    </div>
+
+    <div class="file-ready" id="file-ready">✓ <span id="file-name"></span></div>
+    <div class="error-msg" id="upload-error"></div>
+
+    <button class="btn-generate" id="btn-generate" disabled onclick="generateReport()">
+      Generiraj report →
+    </button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loading-ring"></div>
+  <div class="loading-title">Analiziram reele...</div>
+  <div class="loading-sub" id="loading-sub">Berem podatke iz CSV</div>
+</div>
+
+<!-- REPORT -->
+<div id="report-screen">
+  <div class="report-header">
+    <div>
+      <div class="report-title">Weekly Reels Report</div>
+      <div class="report-week" id="report-week"></div>
+    </div>
+    <button class="btn-new" onclick="showUpload()">← Nov report</button>
+  </div>
+
+  <!-- SUMMARY STATS -->
+  <div class="stats-row" id="stats-row"></div>
+
+  <!-- RANKING BY REACH -->
+  <div class="section">
+    <div class="section-head">Ranking — Reach (glavna metrika)</div>
+    <table class="ranking-table" id="reach-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Reel</th>
+          <th>Reach</th>
+          <th>Views</th>
+          <th>Eng. Rate</th>
+          <th>Avg Watch</th>
+        </tr>
+      </thead>
+      <tbody id="reach-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- RANKING BY ENGAGEMENT -->
+  <div class="section">
+    <div class="section-head">Ranking — Engagement</div>
+    <table class="ranking-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Reel</th>
+          <th>Engagement</th>
+          <th>Likes</th>
+          <th>Saves</th>
+          <th>Shares</th>
+          <th>Comments</th>
+        </tr>
+      </thead>
+      <tbody id="eng-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- AI ANALYSIS -->
+  <div class="section">
+    <div class="section-head">Claude analiza &amp; priporočila</div>
+    <div class="analysis-box">
+      <div class="analysis-content" id="analysis-content">Analiziram...</div>
+    </div>
+  </div>
+
+  <div class="email-status" id="email-status"></div>
+  <div class="error-msg" id="report-error"></div>
+</div>
+
+<script>
+let csvData = [];
+let parsedReels = [];
+
+// ── INIT ──────────────────────────────────────────────
+window.onload = () => {
+  const ak = localStorage.getItem('ak');
+  const rk = localStorage.getItem('rk');
+  const em = localStorage.getItem('em');
+
+  if (ak && rk && em) {
+    document.getElementById('anthropic-key').value = ak;
+    document.getElementById('resend-key').value = rk;
+    document.getElementById('user-email').value = em;
+    showUpload();
+  } else {
+    show('setup-screen');
+  }
+
+  // Set week display
+  const now = new Date();
+  const opts = { day: 'numeric', month: 'long', year: 'numeric' };
+  document.getElementById('week-display').textContent = now.toLocaleDateString('sl-SI', opts);
+};
+
+// ── SCREENS ───────────────────────────────────────────
+function show(id) {
+  ['setup-screen','upload-screen','loading-screen','report-screen'].forEach(s => {
+    const el = document.getElementById(s);
+    el.style.display = 'none';
+  });
+  const target = document.getElementById(id);
+  target.style.display = ['loading-screen','report-screen'].includes(id) ? 'block' :
+    id === 'setup-screen' || id === 'upload-screen' ? 'flex' : 'flex';
+  if (id === 'loading-screen' || id === 'report-screen') target.style.display = 'block';
+}
+
+function showSetup() { show('setup-screen'); }
+function showUpload() { show('upload-screen'); }
+
+// ── SETUP ─────────────────────────────────────────────
+function saveSetup() {
+  const ak = document.getElementById('anthropic-key').value.trim();
+  const rk = document.getElementById('resend-key').value.trim();
+  const em = document.getElementById('user-email').value.trim();
+
+  if (!ak || !rk || !em) { alert('Vnesite vse tri vrednosti.'); return; }
+
+  localStorage.setItem('ak', ak);
+  localStorage.setItem('rk', rk);
+  localStorage.setItem('em', em);
+  showUpload();
+}
+
+// ── FILE HANDLING ─────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  if (!file || !file.name.endsWith('.csv')) {
+    showError('upload-error', 'Prosim uploadaj .csv file.');
+    return;
+  }
+  hideError('upload-error');
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      csvData = results.data;
+      parsedReels = parseReels(results.data);
+      if (parsedReels.length === 0) {
+        showError('upload-error', 'Ne najdem podatkov. Preveri da je to Metricool Reels CSV.');
+        return;
+      }
+      document.getElementById('file-ready').style.display = 'block';
+      document.getElementById('file-name').textContent = file.name + ' (' + parsedReels.length + ' reelov)';
+      document.getElementById('btn-generate').disabled = false;
+    },
+    error: () => showError('upload-error', 'Napaka pri branju CSV.')
+  });
+}
+
+function parseReels(data) {
+  return data.map(row => {
+    // Flexible column name matching
+    const get = (...keys) => {
+      for (const k of keys) {
+        const found = Object.keys(row).find(rk => rk.toLowerCase().includes(k.toLowerCase()));
+        if (found) return row[found];
+      }
+      return '';
+    };
+    const num = (...keys) => {
+      const v = get(...keys);
+      return parseFloat(String(v).replace(/[^0-9.-]/g,'')) || 0;
+    };
+
+    return {
+      date: get('date','datum','published','posted'),
+      caption: get('caption','title','description','text','naslov'),
+      reach: num('organic reach','reach'),
+      views: num('organic views','views','plays','impressions'),
+      interactions: num('organic interactions','interactions'),
+      likes: num('organic likes','likes'),
+      saves: num('saves'),
+      shares: num('shares'),
+      comments: num('organic comments','comments'),
+      engagement: num('organic engagement','engagement rate','engagement'),
+      avgWatch: get('avg. watch','avg watch','average watch','watch time avg'),
+      totalWatch: get('total watch','watch time total'),
+      viewRate: num('view rate','% view','+3sec'),
+    };
+  }).filter(r => r.reach > 0 || r.views > 0);
+}
+
+// ── GENERATE ──────────────────────────────────────────
+async function generateReport() {
+  if (parsedReels.length === 0) return;
+
+  show('loading-screen');
+  setLoading('Pripravljam podatke...');
+
+  const ak = localStorage.getItem('ak');
+  const rk = localStorage.getItem('rk');
+  const em = localStorage.getItem('em');
+
+  // Sort by reach
+  const byReach = [...parsedReels].sort((a,b) => b.reach - a.reach);
+  const byEng = [...parsedReels].sort((a,b) => b.interactions - a.interactions);
+
+  // Summary stats
+  const totalReach = parsedReels.reduce((s,r) => s+r.reach, 0);
+  const totalViews = parsedReels.reduce((s,r) => s+r.views, 0);
+  const totalInteractions = parsedReels.reduce((s,r) => s+r.interactions, 0);
+  const avgEng = parsedReels.length > 0
+    ? (parsedReels.reduce((s,r) => s+r.engagement, 0) / parsedReels.length).toFixed(2)
+    : 0;
+
+  setLoading('Kličem Claude za analizo...');
+
+  // Build data summary for Claude
+  const reelsSummary = byReach.map((r, i) => `
+Rank #${i+1} po reachu:
+- Caption: ${r.caption ? r.caption.substring(0,80) : 'N/A'}
+- Datum: ${r.date}
+- Organic Reach: ${r.reach}
+- Organic Views: ${r.views}
+- Organic Interactions: ${r.interactions}
+- Likes: ${r.likes} | Saves: ${r.saves} | Shares: ${r.shares} | Comments: ${r.comments}
+- Engagement Rate: ${r.engagement}%
+- Avg Watch Time: ${r.avgWatch}
+- % View Rate (+3s): ${r.viewRate}%
+`).join('\n---\n');
+
+  const prompt = `Si analitik za Instagram Reels za fitness in nutrition content kreatorja. Analiziraj te podatke in napiši profesionalni tedenski report v slovenščini.
+
+PODATKI (${parsedReels.length} reelov, rangirani po organic reach):
+${reelsSummary}
+
+SKUPNE STATISTIKE:
+- Skupni Reach: ${fmt(totalReach)}
+- Skupni Views: ${fmt(totalViews)}
+- Skupne Interakcije: ${fmt(totalInteractions)}
+- Povprečni Engagement Rate: ${avgEng}%
+
+Napiši report z naslednjimi sekcijami (uporabi točno te naslove med ### in ###):
+
+### EXECUTIVE SUMMARY ###
+2-3 stavki. Kaj je bil ta teden dober, kaj slab. Direktno, brez fluffa.
+
+### TOP PERFORMERS ###
+Top 3 reeli po reachu. Za vsakega: zakaj je performiral dobro (reach, engagement, watch time angle).
+
+### BOTTOM PERFORMERS ###
+Bottom 2-3 reeli. Zakaj so slabo performirali. Konkretni razlogi.
+
+### VZORCI ###
+Kateri tipi contentu, teme, dolžine, ali časi objave delujejo bolje. Kaj vidijo v podatkih.
+
+### DOUBLE DOWN ###
+3-5 konkretnih stvari, ki jih mora NAREDITI VEČ na podlagi podatkov. Specifično.
+
+### OPUSTI ALI ZMANJŠAJ ###
+2-3 stvari, ki jih mora NAREDITI MANJ ali popolnoma opustiti. Specifično.
+
+### AKCIJSKI PLAN ZA NASLEDNJI TEDEN ###
+3 konkretne akcije za naslednji teden. Numeriran seznam.
+
+Bodi direkten, konkreten, brez generičnih nasvetov. Govori samo o tem kar vidijo podatki.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ak, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1800,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) throw new Error('Claude API error: ' + response.status);
+    const data = await response.json();
+    const analysis = data.content[0].text;
+
+    setLoading('Gradim report...');
+
+    // Build report UI
+    buildReport(byReach, byEng, totalReach, totalViews, totalInteractions, avgEng, analysis);
+
+    // Send email
+    setLoading('Pošiljam email...');
+    await sendEmail(rk, em, byReach, analysis, totalReach, totalViews, totalInteractions, avgEng);
+
+  } catch(err) {
+    show('upload-screen');
+    showError('upload-error', 'Napaka: ' + err.message);
+  }
+}
+
+function buildReport(byReach, byEng, totalReach, totalViews, totalInteractions, avgEng, analysis) {
+  // Week
+  const now = new Date();
+  document.getElementById('report-week').textContent =
+    'Teden ' + now.toLocaleDateString('sl-SI', { day:'numeric', month:'long', year:'numeric' });
+
+  // Stats
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Skupni Reach</div><div class="stat-value">${fmt(totalReach)}</div><div class="stat-sub">${parsedReels.length} reelov</div></div>
+    <div class="stat-card"><div class="stat-label">Skupni Views</div><div class="stat-value">${fmt(totalViews)}</div></div>
+    <div class="stat-card"><div class="stat-label">Interakcije</div><div class="stat-value">${fmt(totalInteractions)}</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Engagement</div><div class="stat-value">${avgEng}%</div></div>
+  `;
+
+  // Reach table
+  document.getElementById('reach-tbody').innerHTML = byReach.map((r, i) => `
+    <tr class="rank-${i+1}">
+      <td><span class="rank-num">${i+1}</span></td>
+      <td>
+        <div class="reel-caption">${r.caption || '(brez captiona)'}</div>
+        <div class="reel-date">${r.date}</div>
+      </td>
+      <td><span class="metric-highlight">${fmt(r.reach)}</span></td>
+      <td>${fmt(r.views)}</td>
+      <td>${r.engagement}%</td>
+      <td>${r.avgWatch || '—'}</td>
+    </tr>
+  `).join('');
+
+  // Engagement table
+  document.getElementById('eng-tbody').innerHTML = byEng.map((r, i) => `
+    <tr class="rank-${i+1}">
+      <td><span class="rank-num">${i+1}</span></td>
+      <td>
+        <div class="reel-caption">${r.caption || '(brez captiona)'}</div>
+        <div class="reel-date">${r.date}</div>
+      </td>
+      <td><span class="metric-highlight">${fmt(r.interactions)}</span></td>
+      <td>${fmt(r.likes)}</td>
+      <td>${fmt(r.saves)}</td>
+      <td>${fmt(r.shares)}</td>
+      <td>${fmt(r.comments)}</td>
+    </tr>
+  `).join('');
+
+  // Analysis — format sections
+  const formatted = analysis
+    .replace(/### (.+?) ###/g, '<h3>$1</h3>')
+    .split('\n')
+    .map(line => {
+      if (line.startsWith('<h3>')) return line;
+      if (line.match(/^[-•*]\s/) || line.match(/^\d+\.\s/)) {
+        const content = line.replace(/^[-•*]\s/, '').replace(/^\d+\.\s/, '');
+        const cls = line.toLowerCase().includes('double down') || line.toLowerCase().includes('več') ? 'do-more' :
+                    line.toLowerCase().includes('opusti') || line.toLowerCase().includes('manj') ? 'do-less' : '';
+        return `<li class="${cls}">${content}</li>`;
+      }
+      return line ? `<p style="margin:6px 0;color:var(--muted)">${line}</p>` : '';
+    })
+    .join('\n');
+
+  document.getElementById('analysis-content').innerHTML = formatted;
+  show('report-screen');
+}
+
+async function sendEmail(rk, em, byReach, analysis, totalReach, totalViews, totalInteractions, avgEng) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('sl-SI', { day:'numeric', month:'long', year:'numeric' });
+
+  const topReels = byReach.slice(0,3).map((r,i) =>
+    `<tr><td style="padding:8px 12px;font-family:monospace;color:#888">#${i+1}</td>
+     <td style="padding:8px 12px">${r.caption ? r.caption.substring(0,50)+'...' : '(brez captiona)'}</td>
+     <td style="padding:8px 12px;font-family:monospace;color:#e8ff47;text-align:right">${fmt(r.reach)}</td></tr>`
+  ).join('');
+
+  const htmlEmail = `<!DOCTYPE html><html><body style="background:#080808;color:#e8e6e0;font-family:'Helvetica Neue',Arial,sans-serif;padding:40px 24px;max-width:680px;margin:0 auto">
+<div style="border-bottom:1px solid #222;padding-bottom:24px;margin-bottom:32px">
+  <div style="font-size:11px;letter-spacing:0.12em;color:#e8ff47;text-transform:uppercase;margin-bottom:8px">Weekly Reels Report</div>
+  <div style="font-size:24px;font-weight:800">${dateStr}</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:32px">
+  <div style="background:#111;border:1px solid #222;border-radius:8px;padding:16px">
+    <div style="font-size:10px;color:#666;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Skupni Reach</div>
+    <div style="font-size:28px;font-weight:800;color:#e8ff47">${fmt(totalReach)}</div>
+  </div>
+  <div style="background:#111;border:1px solid #222;border-radius:8px;padding:16px">
+    <div style="font-size:10px;color:#666;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Skupni Views</div>
+    <div style="font-size:28px;font-weight:800;color:#e8ff47">${fmt(totalViews)}</div>
+  </div>
+  <div style="background:#111;border:1px solid #222;border-radius:8px;padding:16px">
+    <div style="font-size:10px;color:#666;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Interakcije</div>
+    <div style="font-size:28px;font-weight:800;color:#e8ff47">${fmt(totalInteractions)}</div>
+  </div>
+  <div style="background:#111;border:1px solid #222;border-radius:8px;padding:16px">
+    <div style="font-size:10px;color:#666;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Avg Engagement</div>
+    <div style="font-size:28px;font-weight:800;color:#e8ff47">${avgEng}%</div>
+  </div>
+</div>
+<div style="margin-bottom:32px">
+  <div style="font-size:11px;letter-spacing:0.1em;color:#666;text-transform:uppercase;margin-bottom:12px">Top 3 po Reachu</div>
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr>
+      <th style="text-align:left;font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #222">#</th>
+      <th style="text-align:left;font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #222">Reel</th>
+      <th style="text-align:right;font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;padding:6px 12px;border-bottom:1px solid #222">Reach</th>
+    </tr></thead>
+    <tbody>${topReels}</tbody>
+  </table>
+</div>
+<div style="background:#111;border:1px solid #222;border-radius:10px;padding:24px">
+  <div style="font-size:11px;letter-spacing:0.1em;color:#666;text-transform:uppercase;margin-bottom:16px">Claude Analiza</div>
+  <div style="font-size:14px;line-height:1.7;color:#aaa;white-space:pre-wrap">${analysis.replace(/### (.+?) ###/g, '\n$1\n').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+</div>
+<div style="margin-top:32px;font-size:11px;color:#444;font-family:monospace;text-align:center">Reels Report System — ${dateStr}</div>
+</body></html>`;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + rk },
+      body: JSON.stringify({
+        from: 'Reels Report <onboarding@resend.dev>',
+        to: [em],
+        subject: `Reels Report — ${dateStr}`,
+        html: htmlEmail
+      })
+    });
+
+    if (res.ok) {
+      const emailEl = document.getElementById('email-status');
+      emailEl.textContent = '✓ Report poslan na ' + em;
+      emailEl.style.display = 'block';
+    } else {
+      const reportErrEl = document.getElementById('report-error');
+      reportErrEl.textContent = 'Email ni bil poslan (API error). Report je prikazan zgoraj.';
+      reportErrEl.style.display = 'block';
+    }
+  } catch(e) {
+    const reportErrEl = document.getElementById('report-error');
+    reportErrEl.textContent = 'Email ni bil poslan: ' + e.message;
+    reportErrEl.style.display = 'block';
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────
+function fmt(n) {
+  if (!n && n !== 0) return '—';
+  return Number(n).toLocaleString('sl-SI');
+}
+
+function setLoading(msg) {
+  document.getElementById('loading-sub').textContent = msg;
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hideError(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+</script>
+</body>
+</html>
